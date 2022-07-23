@@ -14,7 +14,7 @@ import "./VotingToken.sol";
 
 // FIXME: check all uints and ints
 
-// To think about : if 80% votes for anotherOption, we can disable current proposal
+// TODO: To think about : if 80% votes for anotherOption, we can disable current proposal
 
 contract Ballot {
     address immutable ticketTokenAddr;
@@ -82,7 +82,7 @@ contract Ballot {
     }
 
     function createProposal(string memory _name, string[] memory _votingOptions)
-        public
+        external
         userHasTokens
     {
         // name should be unique
@@ -108,20 +108,36 @@ contract Ballot {
         string memory _option,
         uint16 _votes
     )
-        public
+        external
         userHasTokens
         isPropsalActive(_name)
         isProposalTimeFinished(_name)
     {
-        require(proposals[_name].isActive);
-
         uint256 numberOfVotesAvailable = VotingTicket(ticketTokenAddr)
             .numberOfVotes(msg.sender);
         require(numberOfVotesAvailable >= _votes);
+
         proposals[_name].optionVotes[_option] += numberOfVotesAvailable;
         proposals[_name].optionVotesByAddress[_option][msg.sender] += _votes;
 
         checkIsQuorumReached(_name, _option);
+    }
+
+    function removeVotesForProposal(
+        string memory _name,
+        string memory _option
+    )
+        external
+        userHasTokens
+        isPropsalActive(_name)
+        isProposalTimeFinished(_name)
+    {
+        uint256 numberOfUserVotes = proposals[_name].optionVotesByAddress[_option][msg.sender];
+
+        require(numberOfUserVotes !=0);
+
+        proposals[_name].optionVotes[_option] -= numberOfUserVotes;
+        proposals[_name].optionVotesByAddress[_option][msg.sender] -= numberOfUserVotes;
     }
 
     function checkIsQuorumReached(
@@ -130,6 +146,7 @@ contract Ballot {
     ) private {
         uint256 numberOfVotes = proposals[_proposalName].optionVotes[_option];
         uint256 totalSupply = VotingTicket(ticketTokenAddr).totalSupply();
+
         if ((numberOfVotes / totalSupply) * 100 >= quroumRequiredPercentage) {
             emit ProposalQuorumReached(_proposalName, _option);
             makeProposalInactive(_proposalName);
