@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.12;
 
 import "./VotingToken.sol";
 
@@ -15,7 +15,6 @@ import "./VotingToken.sol";
 // FIXME: check all uints and ints
 
 // TODO: To think about : if 80% votes for anotherOption, we can disable current proposal
-
 contract Ballot {
     address immutable ticketTokenAddr;
     uint256 immutable votingPeriod;
@@ -123,21 +122,22 @@ contract Ballot {
         checkIsQuorumReached(_name, _option);
     }
 
-    function removeVotesForProposal(
-        string memory _name,
-        string memory _option
-    )
+    function removeVotesForProposal(string memory _name, string memory _option)
         external
         userHasTokens
         isPropsalActive(_name)
         isProposalTimeFinished(_name)
     {
-        uint256 numberOfUserVotes = proposals[_name].optionVotesByAddress[_option][msg.sender];
+        uint256 numberOfUserVotes = proposals[_name].optionVotesByAddress[
+            _option
+        ][msg.sender];
 
-        require(numberOfUserVotes !=0);
+        require(numberOfUserVotes != 0);
 
         proposals[_name].optionVotes[_option] -= numberOfUserVotes;
-        proposals[_name].optionVotesByAddress[_option][msg.sender] -= numberOfUserVotes;
+        proposals[_name].optionVotesByAddress[_option][
+            msg.sender
+        ] -= numberOfUserVotes;
     }
 
     function checkIsQuorumReached(
