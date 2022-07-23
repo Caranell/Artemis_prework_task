@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.9;
+
+import "./VotingToken.sol";
 
 //  Implement some form of voting ballot**
 
@@ -11,7 +13,7 @@ pragma solidity ^0.8.15;
 // A proposal is only passed if a quorum, predefined in the voting ballot itself, is reached.
 
 contract Ballot {
-    address immutable tokenAddr;
+    address immutable ticketTokenAddr;
     uint256 immutable votingPeriod;
     address immutable owner;
     uint8 immutable quroumRequiredPercentage;
@@ -41,14 +43,14 @@ contract Ballot {
 
     constructor(
         uint256 _votingPeriod,
-        address _tokenAddr,
+        address _ticketTokenAddr,
         uint8 _quroumRequiredPercentage
     ) {
         owner = msg.sender;
 
         votingPeriod = _votingPeriod;
         quroumRequiredPercentage = _quroumRequiredPercentage;
-        tokenAddr = _tokenAddr;
+        ticketTokenAddr = _ticketTokenAddr;
     }
 
     modifier isPropsalActive(string memory proposalName) {
@@ -65,7 +67,7 @@ contract Ballot {
     }
 
     modifier userHasTokens() {
-        require(VotingTicket(tokenAddr).balanceOf(msg.sender) != 0);
+        require(VotingTicket(ticketTokenAddr).balanceOf(msg.sender) != 0);
         // TODO: depends on the implementation, maybe we should also check number of delegated votes
         _;
     }
@@ -94,9 +96,10 @@ contract Ballot {
         emit ProposalCreated(_name, msg.sender);
     }
 
-    //  string memory option,
-    //   int16 votes
-    function voteForProposal(string memory _name)
+  
+    function voteForProposal(string memory _name,
+       string memory option,
+      uint16 votes)
         public
         userHasTokens
         isPropsalActive(_name)
@@ -104,9 +107,9 @@ contract Ballot {
     {
         require(proposals[_name].isActive);
 
-        // int256 numberOfVotesAvailable = Ticket(tokenAddr).balanceOf(msg.sender);
-        // require(numberOfVotesAvailable>=votes);
-        // proposals[proposal].votes += numberOfVotesAvailable;
+        uint256 numberOfVotesAvailable = VotingTicket(ticketTokenAddr).numberOfVotes(msg.sender);
+        require(numberOfVotesAvailable>=votes);
+        // proposals[_name][option].votes += numberOfVotesAvailable;
 
         checkIsQuorumReached(_name);
     }
