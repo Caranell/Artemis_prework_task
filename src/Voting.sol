@@ -5,12 +5,16 @@ import "./VotingToken.sol";
 
 //  Implement some form of voting ballot**
 
-// Implement a pair of contracts: one that serves as a voting ballot and another as a token. 
-// This voting ballot allows holders of the token to create proposals and to vote on said proposals. 
-// The voting period duration must be identical for all proposals and should be defined on the voting ballot contract. 
-// Proposals created on the voting ballot must include a predefined list of voting options. 
-// Any token holder can vote on any ongoing proposal or delegate their voting power to another holder. 
+// Implement a pair of contracts: one that serves as a voting ballot and another as a token.
+// This voting ballot allows holders of the token to create proposals and to vote on said proposals.
+// The voting period duration must be identical for all proposals and should be defined on the voting ballot contract.
+// Proposals created on the voting ballot must include a predefined list of voting options.
+// Any token holder can vote on any ongoing proposal or delegate their voting power to another holder.
 // A proposal is only passed if a quorum, predefined in the voting ballot itself, is reached.
+
+// FIXME: check all uints and ints
+
+// To think about : if 80% votes for anotherOption, we can disable current proposal
 
 contract Ballot {
     address immutable ticketTokenAddr;
@@ -19,26 +23,31 @@ contract Ballot {
     uint8 immutable quroumRequiredPercentage;
 
     // reworked events (quorumReached + finished -> quorumReached+ProposalFinished+ProposalTImedOut)
-    event ProposalQuorumReached(string indexed proposalName, string winningOption);
+    event ProposalQuorumReached(
+        string indexed proposalName,
+        string winningOption
+    );
     event ProposalTimedOut(string indexed proposalName);
     event ProposalFinished(string indexed proposalName);
     event ProposalCreated(string indexed proposalName, address indexed creator);
-    event VotesAdded(string indexed proposalName, string option, uint numberOfVotes);
+    event VotesAdded(
+        string indexed proposalName,
+        string option,
+        uint256 numberOfVotes
+    );
 
     mapping(string => Proposal) public proposals;
 
     struct Proposal {
         // ??? should we have name or mapping would suffice
         uint256 creationTime;
-        string[] votingOptions;
         // prevent computing 'creation+voting period' every time
         uint256 deadlineTime;
+        string[] votingOptions;
         address creatorAddr;
         bool isActive;
-
-        // TODO: add votes mapping
-        // mapping(string => int64) optionVotes;
-        // mapping(string => mapping(address=> int64)) optionVotesByAddress;
+        mapping(string => uint256) optionVotes;
+        mapping(string => mapping(address => uint256)) optionVotesByAddress;
     }
 
     constructor(
@@ -84,22 +93,21 @@ contract Ballot {
         // TODO: what should we do with proposals with identical names? maybe hash them
         // what if same creator adds same proposal
 
-        Proposal memory proposal = Proposal(
-            block.timestamp,
-            _votingOptions,
-            block.timestamp + votingPeriod,
-            msg.sender,
-            true
-        );
-        proposals[_name] = proposal;
+        Proposal storage newProposal = proposals[_name];
+        newProposal.creationTime = block.timestamp;
+        newProposal.votingOptions = _votingOptions;
+        newProposal.deadlineTime = block.timestamp + votingPeriod;
+        newProposal.creatorAddr = msg.sender;
+        newProposal.isActive = true;
 
         emit ProposalCreated(_name, msg.sender);
     }
 
-  
-    function voteForProposal(string memory _name,
-       string memory option,
-      uint16 votes)
+    function voteForProposal(
+        string memory _name,
+        string memory _option,
+        uint16 _votes
+    )
         public
         userHasTokens
         isPropsalActive(_name)
@@ -107,17 +115,25 @@ contract Ballot {
     {
         require(proposals[_name].isActive);
 
-        uint256 numberOfVotesAvailable = VotingTicket(ticketTokenAddr).numberOfVotes(msg.sender);
-        require(numberOfVotesAvailable>=votes);
-        // proposals[_name][option].votes += numberOfVotesAvailable;
+        uint256 numberOfVotesAvailable = VotingTicket(ticketTokenAddr)
+            .numberOfVotes(msg.sender);
+        require(numberOfVotesAvailable >= _votes);
+        proposals[_name].optionVotes[_option] += numberOfVotesAvailable;
+        proposals[_name].optionVotesByAddress[_option][msg.sender] += _votes;
 
-        checkIsQuorumReached(_name);
+        checkIsQuorumReached(_name, _option);
     }
 
-    function checkIsQuorumReached(string memory _name) private {
-        // if ticket.totalSupply * quorumPercent >= option.votes
-        emit ProposalQuorumReached(_name);
-        makeProposalInactive(_name);
+    function checkIsQuorumReached(
+        string memory _proposalName,
+        string memory _option
+    ) private {
+        uint256 numberOfVotes = proposals[_proposalName].optionVotes[_option];
+        uint256 totalSupply = VotingTicket(ticketTokenAddr).totalSupply();
+        if ((numberOfVotes / totalSupply) * 100 >= quroumRequiredPercentage) {
+            emit ProposalQuorumReached(_proposalName, _option);
+            makeProposalInactive(_proposalName);
+        }
     }
 
     function makeProposalInactive(string memory _name) private {
