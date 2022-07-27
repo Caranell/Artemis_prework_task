@@ -53,7 +53,11 @@ contract VotingToken is ERC20 {
 
     function burn(address from, uint256 amount) external {
         require(msg.sender == from, "User can only burn own tokens");
-        // remove delegeated tokens
+
+        address delegate = usersDelegations[from].delegate;
+        if (delegate != address(0)) {
+            removeDelegatedVotes(from, delegate);
+        }
         _burn(from, amount);
     }
 
@@ -71,8 +75,6 @@ contract VotingToken is ERC20 {
             usersDelegations[addr].amount +
             numberofUserDelegatedVotes[addr];
     }
-
-    // TODO: override transferFrom & transferTo to remove delegations of tokens users already doesnt have
 
     function delegateVotes(address to, uint256 amount)
         external
