@@ -3,7 +3,7 @@ pragma solidity ^0.8.12;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-contract VotingTicket is ERC20 {
+contract VotingToken is ERC20 {
     mapping(address => mapping(address => uint256))
         public delegatedVotesPerUser;
     mapping(address => DelegatedVotes) public usersDelegations;

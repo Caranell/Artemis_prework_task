@@ -6,7 +6,7 @@ import "./VotingToken.sol";
 // FIXME: check all uints and ints
 
 contract Ballot {
-    address immutable ticketTokenAddr;
+    address immutable votingTokenAddr;
     uint256 immutable votingPeriod;
     address immutable owner;
     uint8 immutable quroumRequiredPercentage;
@@ -39,14 +39,14 @@ contract Ballot {
 
     constructor(
         uint256 _votingPeriod,
-        address _ticketTokenAddr,
+        address _votingTokenAddr,
         uint8 _quroumRequiredPercentage
     ) {
         owner = msg.sender;
 
         votingPeriod = _votingPeriod;
         quroumRequiredPercentage = _quroumRequiredPercentage;
-        ticketTokenAddr = _ticketTokenAddr;
+        votingTokenAddr = _votingTokenAddr;
     }
 
     modifier isPropsalActive(string memory proposalName) {
@@ -63,7 +63,7 @@ contract Ballot {
     }
 
     modifier userHasTokens() {
-        require(VotingTicket(ticketTokenAddr).balanceOf(msg.sender) != 0);
+        require(VotingToken(votingTokenAddr).balanceOf(msg.sender) != 0);
         _;
     }
 
@@ -97,7 +97,7 @@ contract Ballot {
         isPropsalActive(_name)
         isProposalTimeFinished(_name)
     {
-        uint256 numberOfVotesAvailable = VotingTicket(ticketTokenAddr)
+        uint256 numberOfVotesAvailable = VotingToken(votingTokenAddr)
             .numberOfVotesAvailable(msg.sender);
         require(numberOfVotesAvailable >= _votes);
 
@@ -130,7 +130,7 @@ contract Ballot {
         string memory _option
     ) private {
         uint256 numberOfVotes = proposals[_proposalName].optionVotes[_option];
-        uint256 totalSupply = VotingTicket(ticketTokenAddr).totalSupply();
+        uint256 totalSupply = VotingToken(votingTokenAddr).totalSupply();
 
         if ((numberOfVotes / totalSupply) * 100 >= quroumRequiredPercentage) {
             emit ProposalQuorumReached(_proposalName, _option);
