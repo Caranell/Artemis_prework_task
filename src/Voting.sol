@@ -50,7 +50,10 @@ contract Ballot {
     }
 
     modifier isPropsalActive(string memory proposalName) {
-        require(proposals[proposalName].isActive);
+        require(
+            proposals[proposalName].isActive,
+            "User can't interact with inactive proposal"
+        );
         _;
     }
 
@@ -63,19 +66,26 @@ contract Ballot {
     }
 
     modifier userHasTokens() {
-        require(VotingToken(votingTokenAddr).balanceOf(msg.sender) != 0);
+        require(
+            VotingToken(votingTokenAddr).balanceOf(msg.sender) != 0,
+            "User should have tokens to preform this operation"
+        );
         _;
     }
 
-    function createProposal(string calldata _name, string[] calldata _votingOptions)
-        external
-        userHasTokens
-    {
-        // name should be unique
-        require(proposals[_name].creationTime != 0);
+    function createProposal(
+        string calldata _name,
+        string[] calldata _votingOptions
+    ) external userHasTokens {
+        require(
+            proposals[_name].creationTime != 0,
+            "Proposal name should be unique"
+        );
 
-        // checking that there're at least 2 options or more
-        require(_votingOptions.length > 1);
+        require(
+            _votingOptions.length > 1,
+            "Proposal should have at least two voting options"
+        );
 
         Proposal storage newProposal = proposals[_name];
         newProposal.creationTime = block.timestamp;
@@ -99,7 +109,10 @@ contract Ballot {
     {
         uint256 numberOfVotesAvailable = VotingToken(votingTokenAddr)
             .numberOfVotesAvailable(msg.sender);
-        require(numberOfVotesAvailable >= _votes);
+        require(
+            numberOfVotesAvailable >= _votes,
+            "User doesn't have enough votes"
+        );
 
         proposals[_name].optionVotes[_option] += numberOfVotesAvailable;
         proposals[_name].optionVotesByAddress[_option][msg.sender] += _votes;
@@ -107,7 +120,10 @@ contract Ballot {
         checkIsQuorumReached(_name, _option);
     }
 
-    function removeVotesForProposal(string calldata _name, string calldata _option)
+    function removeVotesForProposal(
+        string calldata _name,
+        string calldata _option
+    )
         external
         userHasTokens
         isPropsalActive(_name)
@@ -117,7 +133,10 @@ contract Ballot {
             _option
         ][msg.sender];
 
-        require(numberOfUserVotes != 0);
+        require(
+            numberOfUserVotes != 0,
+            "User hasn't yet voted for this proposal"
+        );
 
         proposals[_name].optionVotes[_option] -= numberOfUserVotes;
         proposals[_name].optionVotesByAddress[_option][
