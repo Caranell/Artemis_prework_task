@@ -73,7 +73,7 @@ contract Ballot {
 
     function createProposal(
         string calldata _name,
-        string[] calldata _votingOptions
+        string[] memory _votingOptions
     ) external userHasTokens {
         require(
             proposals[_name].creationTime != 0,
