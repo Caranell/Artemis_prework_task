@@ -54,11 +54,8 @@ contract VotingToken is ERC20 {
     function burn(address from, uint256 amount) external {
         require(msg.sender == from, "User can only burn own tokens");
 
-        address delegate = usersDelegations[from].delegate;
-        if (delegate != address(0)) {
-            removeDelegatedVotes(from, delegate);
-        }
         _burn(from, amount);
+        removeDelegatedVotes(from);
     }
 
     function numberOfVotesAvailable(address addr)
@@ -80,47 +77,50 @@ contract VotingToken is ERC20 {
         external
         userHasTokens(msg.sender)
         userHasTokens(to)
+        returns (bool)
     {
         require(msg.sender != to, "Delegation votes to yourself is prohibited");
+        require(
+            delegatedVotesPerUser[to][msg.sender] + amount <=
+                balanceOf[msg.sender],
+            "User doesn't have enough tokens to delegate"
+        );
 
-        if (usersDelegations[msg.sender].amount == 0) {
-            // user doesn't have any votes delegated
+        // user doesn't have any votes delegated
+        if (getUserDelegate(msg.sender) == address(0)) {
             numberofUserDelegatedVotes[to] += amount;
             delegatedVotesPerUser[to][msg.sender] += amount;
             usersDelegations[msg.sender] = DelegatedVotes(amount, to);
-            emit VotesDelegated(msg.sender, to, amount);
-        } else if (usersDelegations[msg.sender].delegate == to) {
-            // user wants to delegate more votes to same address
-
-            // in case user tries to delegate more votes than he has
-            require(
-                delegatedVotesPerUser[to][msg.sender] + amount <=
-                    balanceOf[msg.sender],
-                "User doesn't have enough tokens to delegate"
-            );
-            numberofUserDelegatedVotes[to] += amount;
-            usersDelegations[msg.sender].amount += amount;
-            delegatedVotesPerUser[to][msg.sender] += amount;
-        } else {
-            // user wants to delegate votes to another address
-            removeDelegatedVotes(msg.sender, to);
-            numberofUserDelegatedVotes[to] += amount;
-            usersDelegations[msg.sender].amount += amount;
-            usersDelegations[msg.sender].delegate = to;
-
-            delegatedVotesPerUser[to][msg.sender] += amount;
+            return true;
         }
+
+        // user wants to delegate more votes to same address
+        if (usersDelegations[msg.sender].delegate == to) {
+            numberofUserDelegatedVotes[to] += amount;
+            usersDelegations[msg.sender].amount += amount;
+            delegatedVotesPerUser[to][msg.sender] += amount;
+
+            return true;
+        }
+
+        // user wants to delegate votes to another address
+        removeDelegatedVotes(msg.sender);
+        numberofUserDelegatedVotes[to] += amount;
+        delegatedVotesPerUser[to][msg.sender] += amount;
+        usersDelegations[msg.sender].amount += amount;
+        usersDelegations[msg.sender].delegate = to;
+
+        emit VotesDelegated(msg.sender, to, amount);
+
+        return true;
     }
 
-    function removeDelegatedVotes(address initiator, address delegate)
+    function removeDelegatedVotes(address initiator)
         public
         userHasTokens(initiator)
-        userHasTokens(delegate)
     {
-        require(
-            usersDelegations[initiator].delegate == delegate,
-            "User hasn't delegated any votes to this address"
-        );
+        address delegate = getUserDelegate(initiator);
+        require(delegate != address(0), "User hasn't yet delegated any votes");
 
         uint256 amountOfDelegatedVotes = usersDelegations[initiator].amount;
 
@@ -130,6 +130,16 @@ contract VotingToken is ERC20 {
         delegatedVotesPerUser[delegate][initiator] -= amountOfDelegatedVotes;
 
         emit VotesUndelegated(initiator, delegate, amountOfDelegatedVotes);
+    }
+
+    function getUserDelegate(address addr) private view returns (address) {
+        address delegate = usersDelegations[addr].delegate;
+
+        if (delegate != address(0)) {
+            return delegate;
+        }
+
+        return address(0);
     }
 
     function transfer(address to, uint256 amount)
@@ -144,6 +154,8 @@ contract VotingToken is ERC20 {
         unchecked {
             balanceOf[to] += amount;
         }
+
+        removeDelegatedVotes(msg.sender);
 
         emit Transfer(msg.sender, to, amount);
 
@@ -167,6 +179,8 @@ contract VotingToken is ERC20 {
         unchecked {
             balanceOf[to] += amount;
         }
+
+        removeDelegatedVotes(from);
 
         emit Transfer(from, to, amount);
 

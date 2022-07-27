@@ -3,8 +3,6 @@ pragma solidity ^0.8.12;
 
 import "./VotingToken.sol";
 
-// FIXME: check all uints and ints
-
 contract Ballot {
     address immutable votingTokenAddr;
     uint256 immutable votingPeriod;
