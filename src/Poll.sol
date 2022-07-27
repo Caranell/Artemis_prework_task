@@ -1,30 +1,29 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.12;
 
+pragma experimental ABIEncoderV2;
+
 import "./VotingToken.sol";
 
-contract Proposal {
+contract Poll {
     address immutable votingTokenAddr;
     uint256 immutable votingPeriod;
     address immutable owner;
     uint8 immutable quroumRequiredPercentage;
 
     event ProposalQuorumReached(
-        string indexed proposalName,
-        string winningOption
+        string indexed proposalName, string winningOption
     );
     event ProposalTimedOut(string indexed proposalName);
     event ProposalFinished(string indexed proposalName);
     event ProposalCreated(string indexed proposalName, address indexed creator);
     event VotesAdded(
-        string indexed proposalName,
-        string option,
-        uint256 numberOfVotes
+        string indexed proposalName, string option, uint256 numberOfVotes
     );
 
-    mapping(string => ProposalData) public proposals;
+    mapping(string => Proposal) public proposals;
 
-    struct ProposalData {
+    struct Proposal {
         uint256 creationTime;
         // prevent computing 'creation+voting period' every time
         uint256 deadlineTime;
@@ -33,6 +32,10 @@ contract Proposal {
         bool isActive;
         mapping(string => uint256) optionVotes;
         mapping(string => mapping(address => uint256)) optionVotesByAddress;
+    }
+
+    function  getProposalOptionVotes(string calldata _propsalName, string calldata _option) internal view returns (uint256) {
+        return proposals[_propsalName].optionVotes[_option];
     }
 
     constructor(
@@ -74,10 +77,12 @@ contract Proposal {
     function createProposal(
         string calldata _name,
         string[] memory _votingOptions
-    ) external userHasTokens {
+    )
+        external
+        userHasTokens
+    {
         require(
-            proposals[_name].creationTime != 0,
-            "Proposal name should be unique"
+            proposals[_name].creationTime == 0, "Proposal name should be unique"
         );
 
         require(
@@ -85,7 +90,7 @@ contract Proposal {
             "Proposal should have at least two voting options"
         );
 
-        ProposalData storage newProposal = proposals[_name];
+        Proposal storage newProposal = proposals[_name];
         newProposal.creationTime = block.timestamp;
         newProposal.votingOptions = _votingOptions;
         newProposal.deadlineTime = block.timestamp + votingPeriod;
@@ -98,18 +103,17 @@ contract Proposal {
     function voteForProposal(
         string calldata _name,
         string calldata _option,
-        uint16 _votes
+        uint256 _votes
     )
         external
         userHasTokens
         isPropsalActive(_name)
         isProposalTimeFinished(_name)
     {
-        uint256 numberOfVotesAvailable = VotingToken(votingTokenAddr)
-            .numberOfVotesAvailable(msg.sender);
+        uint256 numberOfVotesAvailable =
+            VotingToken(votingTokenAddr).numberOfVotesAvailable(msg.sender);
         require(
-            numberOfVotesAvailable >= _votes,
-            "User doesn't have enough votes"
+            numberOfVotesAvailable >= _votes, "User doesn't have enough votes"
         );
 
         proposals[_name].optionVotes[_option] += numberOfVotesAvailable;
@@ -127,25 +131,24 @@ contract Proposal {
         isPropsalActive(_name)
         isProposalTimeFinished(_name)
     {
-        uint256 numberOfUserVotes = proposals[_name].optionVotesByAddress[
-            _option
-        ][msg.sender];
+        uint256 numberOfUserVotes =
+            proposals[_name].optionVotesByAddress[_option][msg.sender];
 
         require(
-            numberOfUserVotes != 0,
-            "User hasn't yet voted for this proposal"
+            numberOfUserVotes != 0, "User hasn't yet voted for this proposal"
         );
 
         proposals[_name].optionVotes[_option] -= numberOfUserVotes;
-        proposals[_name].optionVotesByAddress[_option][
-            msg.sender
-        ] -= numberOfUserVotes;
+        proposals[_name].optionVotesByAddress[_option][msg.sender] -=
+            numberOfUserVotes;
     }
 
     function checkIsQuorumReached(
         string memory _proposalName,
         string memory _option
-    ) private {
+    )
+        private
+    {
         uint256 numberOfVotes = proposals[_proposalName].optionVotes[_option];
         uint256 totalSupply = VotingToken(votingTokenAddr).totalSupply();
 
