@@ -3,7 +3,6 @@ pragma solidity ^0.8.12;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-// Should it be erc721?
 contract VotingTicket is ERC20 {
     mapping(address => mapping(address => uint256))
         public delegatedVotesPerUser;
@@ -51,7 +50,7 @@ contract VotingTicket is ERC20 {
         _burn(from, amount);
     }
 
-    function numberOfVotes(address addr) public view returns (uint256) {
+    function numberOfVotesAvailable(address addr) external view returns (uint256) {
         require(usersDelegations[addr].amount <= balanceOf[addr]);
         return
             balanceOf[addr] -
@@ -112,5 +111,41 @@ contract VotingTicket is ERC20 {
         delegatedVotesPerUser[delegate][initiator] -= amountOfDelegatedVotes;
 
         emit VotesUndelegated(initiator, delegate, amountOfDelegatedVotes);
+    }
+
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        balanceOf[msg.sender] -= amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(msg.sender, to, amount);
+
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
+
+        if (allowed != type(uint256).max) allowance[from][msg.sender] = allowed - amount;
+
+        balanceOf[from] -= amount;
+
+        // Cannot overflow because the sum of all user
+        // balances can't exceed the max uint256 value.
+        unchecked {
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
+
+        return true;
     }
 }
