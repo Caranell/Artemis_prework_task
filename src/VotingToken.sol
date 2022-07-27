@@ -4,8 +4,7 @@ pragma solidity ^0.8.12;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 contract VotingToken is ERC20 {
-    mapping(address => mapping(address => uint256))
-        public delegatedVotesPerUser;
+    mapping(address => mapping(address => uint256)) public delegatedVotesPerUser;
     mapping(address => DelegatedVotes) public usersDelegations;
     mapping(address => uint256) public numberOfUserDelegatedVotes;
 
@@ -21,14 +20,10 @@ contract VotingToken is ERC20 {
     }
 
     event VotesDelegated(
-        address indexed from,
-        address indexed to,
-        uint256 amount
+        address indexed from, address indexed to, uint256 amount
     );
     event VotesUndelegated(
-        address indexed from,
-        address indexed to,
-        uint256 amount
+        address indexed from, address indexed to, uint256 amount
     );
 
     modifier userHasTokens(address addr) {
@@ -41,8 +36,7 @@ contract VotingToken is ERC20 {
 
     modifier onlyOwner() {
         require(
-            msg.sender == owner,
-            "User should be owner to preform this operation"
+            msg.sender == owner, "User should be owner to preform this operation"
         );
         _;
     }
@@ -67,10 +61,9 @@ contract VotingToken is ERC20 {
             usersDelegations[addr].amount <= balanceOf[addr],
             "User has delegated all his tokens"
         );
-        return
-            balanceOf[addr] -
-            usersDelegations[addr].amount +
-            numberOfUserDelegatedVotes[addr];
+        return balanceOf[addr]
+            - usersDelegations[addr].amount
+            + numberOfUserDelegatedVotes[addr];
     }
 
     function delegateVotes(address to, uint256 amount)
@@ -81,8 +74,7 @@ contract VotingToken is ERC20 {
     {
         require(msg.sender != to, "Delegation votes to yourself is prohibited");
         require(
-            delegatedVotesPerUser[to][msg.sender] + amount <=
-                balanceOf[msg.sender],
+            delegatedVotesPerUser[to][msg.sender] + amount <= balanceOf[msg.sender],
             "User doesn't have enough tokens to delegate"
         );
 
@@ -115,10 +107,7 @@ contract VotingToken is ERC20 {
         return true;
     }
 
-    function removeDelegatedVotes()
-        external
-        userHasTokens(msg.sender)
-    {
+    function removeDelegatedVotes() external userHasTokens(msg.sender) {
         address delegate = getUserDelegate(msg.sender);
         require(delegate != address(0), "User hasn't yet delegated any votes");
 
@@ -147,7 +136,7 @@ contract VotingToken is ERC20 {
         delegatedVotesPerUser[delegate][initiator] -= amountOfDelegatedVotes;
 
         emit VotesUndelegated(initiator, delegate, amountOfDelegatedVotes);
-    } 
+    }
 
     function getUserDelegate(address addr) private view returns (address) {
         address delegate = usersDelegations[addr].delegate;
@@ -179,15 +168,15 @@ contract VotingToken is ERC20 {
         return true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
+    function transferFrom(address from, address to, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
         uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
 
-        if (allowed != type(uint256).max)
-            allowance[from][msg.sender] = allowed - amount;
+        if (allowed != type(uint256).max) allowance[from][msg.sender] =
+            allowed - amount;
 
         balanceOf[from] -= amount;
 
