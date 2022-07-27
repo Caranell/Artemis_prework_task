@@ -3,7 +3,7 @@ pragma solidity ^0.8.12;
 
 import "./VotingToken.sol";
 
-contract Ballot {
+contract Proposal {
     address immutable votingTokenAddr;
     uint256 immutable votingPeriod;
     address immutable owner;
@@ -22,9 +22,9 @@ contract Ballot {
         uint256 numberOfVotes
     );
 
-    mapping(string => Proposal) public proposals;
+    mapping(string => ProposalData) public proposals;
 
-    struct Proposal {
+    struct ProposalData {
         uint256 creationTime;
         // prevent computing 'creation+voting period' every time
         uint256 deadlineTime;
@@ -85,7 +85,7 @@ contract Ballot {
             "Proposal should have at least two voting options"
         );
 
-        Proposal storage newProposal = proposals[_name];
+        ProposalData storage newProposal = proposals[_name];
         newProposal.creationTime = block.timestamp;
         newProposal.votingOptions = _votingOptions;
         newProposal.deadlineTime = block.timestamp + votingPeriod;
