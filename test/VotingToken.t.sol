@@ -145,7 +145,7 @@ contract ContractTest is Test {
     }
 
     function testRemoveDelegatedVotes() public {
- mintVotesAsOwner(userAddr, 5);
+        mintVotesAsOwner(userAddr, 5);
         mintVotesAsOwner(delegateAddr, 5);
 
         uint16 votesToDelegate = 4;
@@ -157,14 +157,8 @@ contract ContractTest is Test {
 
         (uint256 amount, address delegate) = Token.usersDelegations(userAddr);
 
-        assertEq(
-            Token.numberOfUserDelegatedVotes(delegateAddr),
-            0
-        );
-        assertEq(
-            Token.delegatedVotesPerUser(delegateAddr, userAddr),
-            0
-        );
+        assertEq(Token.numberOfUserDelegatedVotes(delegateAddr), 0);
+        assertEq(Token.delegatedVotesPerUser(delegateAddr, userAddr), 0);
         assertEq(amount, 0);
         assertEq(delegate, address(0));
     }
