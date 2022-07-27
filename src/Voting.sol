@@ -67,7 +67,7 @@ contract Ballot {
         _;
     }
 
-    function createProposal(string memory _name, string[] memory _votingOptions)
+    function createProposal(string calldata _name, string[] calldata _votingOptions)
         external
         userHasTokens
     {
@@ -88,8 +88,8 @@ contract Ballot {
     }
 
     function voteForProposal(
-        string memory _name,
-        string memory _option,
+        string calldata _name,
+        string calldata _option,
         uint16 _votes
     )
         external
@@ -107,7 +107,7 @@ contract Ballot {
         checkIsQuorumReached(_name, _option);
     }
 
-    function removeVotesForProposal(string memory _name, string memory _option)
+    function removeVotesForProposal(string calldata _name, string calldata _option)
         external
         userHasTokens
         isPropsalActive(_name)
