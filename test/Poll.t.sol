@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/Poll.sol";
+import {Poll} from "../src/Poll.sol";
 import "../src/VotingToken.sol";
 
 uint256 constant votingPeriod = 9999999999;
