@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.12;
 
-import "./VotingToken.sol";
+interface VotingToken {
+    function balanceOf(address) external returns (uint256);
+    function numberOfVotesAvailable(address) external returns (uint256);
+    function totalSupply() external pure returns(uint256);
+}
 
 contract Poll {
     address immutable votingTokenAddr;
     uint256 immutable votingPeriod;
     address immutable owner;
     uint8 immutable quroumRequiredPercentage;
+    mapping(string => Proposal) public proposals;
 
     event ProposalQuorumReached(
         string indexed proposalName,
@@ -23,7 +28,6 @@ contract Poll {
     );
     event Test(uint256 test);
 
-    mapping(string => Proposal) public proposals;
 
     struct Proposal {
         uint256 creationTime;
